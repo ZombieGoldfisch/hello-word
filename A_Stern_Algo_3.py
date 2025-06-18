@@ -38,17 +38,46 @@ class Graph:
     def neighbors(self, node: str) -> List[Edge]:
         return list(self.nodes.get(node, Node(name=node, edges=[])).edges)
 
+    def reversed(self) -> "Graph":
+        """Return a new graph with all edges reversed.
+
+        The ``departure`` of the reversed edge corresponds to the arrival time
+        at the original target stop.
+        """
+        rev = Graph()
+        for source, node in self.nodes.items():
+            for edge in node.edges:
+                arrival = edge.departure + edge.travel_time
+                rev.add_edge(edge.target, source, edge.line, arrival, edge.travel_time)
+        return rev
+
 
 def parse_travel_time(td_str: str) -> float:
-    """Convert a ``travel_time_to_next_stop`` string to minutes."""
+    """Convert a ``travel_time_to_next_stop`` string to minutes.
+
+    The GTFS data usually stores times either in ``HH:MM:SS`` or
+    ``"<days> days HH:MM:SS"`` format.  For convenience when taking user
+    input we also allow ``HH:MM`` where seconds are assumed to be ``00``.
+    """
+
     if not td_str:
         return 0.0
+
     parts = td_str.strip().split(" days ")
     if len(parts) == 2:
         days, time_part = parts
     else:
         days, time_part = "0", parts[0]
-    hours, minutes, seconds = map(int, time_part.split(":"))
+
+    time_parts = time_part.split(":")
+    if len(time_parts) == 3:
+        hours, minutes, seconds = map(int, time_parts)
+    elif len(time_parts) == 2:
+        hours, minutes = map(int, time_parts)
+        seconds = 0
+    else:
+        raise ValueError(f"Invalid time format: {td_str}")
+
     return int(days) * 1440 + hours * 60 + minutes + seconds / 60.0
 
 
@@ -141,6 +170,68 @@ def astar(
 
     return None
 
+
+def astar_reverse(
+    graph: Graph,
+    start: str,
+    goal: str,
+    heuristic: Callable[[str, str], float],
+    arrival_time: float,
+    time_weight: float = 1.0,
+    transfer_penalty: float = 5.0,
+) -> Optional[List[Tuple[str, Optional[str]]]]:
+    """Backward search variant of ``astar``.
+
+    This function searches from ``goal`` towards ``start`` in order to find the
+    latest possible departure time that still results in an arrival at
+    ``goal`` by ``arrival_time``.
+    """
+
+    rev_graph = graph.reversed()
+
+    open_set: List[PrioritizedItem] = []
+    start_state = (goal, None)
+    heapq.heappush(open_set, PrioritizedItem(priority=-arrival_time, node=start_state))
+
+    came_from: Dict[Tuple[str, Optional[str]], Optional[Tuple[str, Optional[str]]]] = {}
+    best_time: Dict[Tuple[str, Optional[str]], float] = {start_state: arrival_time}
+
+    while open_set:
+        current_state = heapq.heappop(open_set).node
+        current_node, current_line = current_state
+        if current_node == start:
+            path = []
+            while True:
+                path.append(current_state)
+                prev = came_from.get(current_state)
+                if prev is None:
+                    break
+                current_state = prev
+            return list(reversed(path))
+
+        current_time = best_time[current_state]
+        for edge in rev_graph.neighbors(current_node):
+            if edge.departure > current_time:
+                continue
+            neighbor_state = (edge.target, edge.line)
+            transfer_cost = 0
+            if current_line is not None and edge.line != current_line:
+                transfer_cost = transfer_penalty
+
+            departure_time = edge.departure - edge.travel_time * time_weight
+            tentative_time = departure_time - transfer_cost
+
+            if tentative_time > best_time.get(neighbor_state, float("-inf")):
+                came_from[neighbor_state] = (current_node, current_line)
+                best_time[neighbor_state] = tentative_time
+                f_score = -tentative_time + heuristic(edge.target, start)
+                heapq.heappush(
+                    open_set,
+                    PrioritizedItem(priority=f_score, node=neighbor_state),
+                )
+
+    return None
+
 # Example heuristic: straight-line distance (requires coordinate lookup)
 def null_heuristic(node: str, goal: str) -> float:
     return 0
@@ -158,8 +249,24 @@ if __name__ == "__main__":
     start = input("Start stop name: ").strip()
     goal = input("Goal stop name: ").strip()
 
-    now = datetime.now()
-    start_minutes = now.hour * 60 + now.minute + now.second / 60.0
+    choice_time = input("Zeit wählen [now/abfahrt/anreise]: ").strip().lower()
+    if choice_time == "now":
+        now = datetime.now()
+        start_minutes = now.hour * 60 + now.minute + now.second / 60.0
+        reverse = False
+    elif choice_time == "abfahrt":
+        dep_str = input("Abfahrtszeit (HH:MM): ").strip()
+        start_minutes = parse_time_to_minutes(dep_str)
+        reverse = False
+    elif choice_time == "anreise":
+        arr_str = input("Ankunftszeit (HH:MM): ").strip()
+        start_minutes = parse_time_to_minutes(arr_str)
+        reverse = True
+    else:
+        print("Ungültige Wahl, benutze aktuelle Zeit.")
+        now = datetime.now()
+        start_minutes = now.hour * 60 + now.minute + now.second / 60.0
+        reverse = False
 
     choice = input("Sort route by time or transfers? [time/transfers]: ").strip().lower()
     if choice.startswith("time"):
@@ -174,15 +281,26 @@ if __name__ == "__main__":
         penalty = 0.1
 
 
-    path = astar(
-        graph,
-        start,
-        goal,
-        heuristic=null_heuristic,
-        start_time=start_minutes,
-        time_weight=time_weight,
-        transfer_penalty=penalty,
-    )
+    if reverse:
+        path = astar_reverse(
+            graph,
+            start,
+            goal,
+            heuristic=null_heuristic,
+            arrival_time=start_minutes,
+            time_weight=time_weight,
+            transfer_penalty=penalty,
+        )
+    else:
+        path = astar(
+            graph,
+            start,
+            goal,
+            heuristic=null_heuristic,
+            start_time=start_minutes,
+            time_weight=time_weight,
+            transfer_penalty=penalty,
+        )
 
     if path:
         print("Found path:")

@@ -319,14 +319,16 @@ if __name__ == "__main__":
 
     if path:
         print("Found path:")
-        for step in path:
+        start_stop = path[0][0]
+        print(f"Start at {start_stop}")
+        for step in path[1:]:
             if len(step) == 3:
                 stop, line, arr = step
                 line_str = line if line is not None else "start"
-                print(f"{stop} via {line_str} arriving at {minutes_to_hhmm(arr)}")
+                print(f"Take {line_str} to {stop} arriving at {minutes_to_hhmm(arr)}")
             else:
                 stop, line = step
                 line_str = line if line is not None else "start"
-                print(f"{stop} via {line_str}")
+                print(f"Take {line_str} to {stop}")
     else:
         print("No path found.")

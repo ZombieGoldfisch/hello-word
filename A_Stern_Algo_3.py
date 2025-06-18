@@ -3,6 +3,7 @@ from typing import Dict, Tuple, List, Callable, Any, Optional
 import heapq
 import csv
 from datetime import datetime
+import difflib
 
 @dataclass(order=True)
 class PrioritizedItem:
@@ -92,6 +93,12 @@ def minutes_to_hhmm(minutes: float) -> str:
     hours = int(minutes // 60)
     mins = int(minutes % 60)
     return f"{hours:02d}:{mins:02d}"
+
+
+def resolve_stop(query: str, stop_names: List[str], cutoff: float = 0.6) -> Optional[str]:
+    """Return the closest matching stop name for ``query`` or ``None``."""
+    matches = difflib.get_close_matches(query, stop_names, n=1, cutoff=cutoff)
+    return matches[0] if matches else None
 
 
 def load_graph_from_csv(path: str) -> Graph:
@@ -274,8 +281,19 @@ if __name__ == "__main__":
         print(f"CSV '{csv_file}' not found. Using test data instead.")
         graph = load_graph_from_csv("Test_CSV_with_travel_times.csv")
 
-    start = input("Start stop name: ").strip()
-    goal = input("Goal stop name: ").strip()
+    stop_names = list(graph.nodes.keys())
+
+    start_query = input("Start stop name: ").strip()
+    start = resolve_stop(start_query, stop_names)
+    if start is None:
+        print(f"Unknown stop: {start_query}")
+        raise SystemExit(1)
+
+    goal_query = input("Goal stop name: ").strip()
+    goal = resolve_stop(goal_query, stop_names)
+    if goal is None:
+        print(f"Unknown stop: {goal_query}")
+        raise SystemExit(1)
 
     choice_time = input("Zeit wählen [now/abfahrt/anreise]: ").strip().lower()
     if choice_time == "now":

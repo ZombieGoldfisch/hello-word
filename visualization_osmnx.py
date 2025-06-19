@@ -4,9 +4,9 @@ from datetime import datetime
 from typing import List, Tuple, Optional
 
 import folium
-import osmnx as ox
 
 from A_Stern_Algo_3 import (
+    Graph,
     load_default_graph,
     find_route,
     resolve_stop,
@@ -16,35 +16,24 @@ from A_Stern_Algo_3 import (
 
 
 def save_route_map(
-    path: List[Tuple[str, Optional[str], float]], filename: str = "route_map.html"
+    graph: Graph,
+    path: List[Tuple[str, Optional[str], float]],
+    filename: str = "route_map.html",
 ) -> Optional[str]:
     """Save the list of stops as an interactive HTML map.
 
-    Each stop name is geocoded via OSM and annotated on the map using
-    :mod:`folium`. The resulting HTML file is returned or ``None`` if
-    geocoding fails.
+    Coordinates are looked up from ``graph``. The resulting HTML file is
+    returned or ``None`` if any stop lacks coordinate data.
     """
 
-    stops = [step[0] for step in path]
     coords = []
-    for stop in stops:
-        try:
-            geom = ox.geocode_to_gdf(stop).loc[0, "geometry"]
-        except Exception:
-            try:
-                result = ox.geocode(stop)
-            except Exception as exc:
-                print(f"Could not geocode stop '{stop}': {exc}")
-                return None
-            if hasattr(result, "geom_type"):
-                geom = result
-            else:
-                lat, lon = result
-                coords.append((lat, lon))
-                continue
-        if geom.geom_type in {"Polygon", "MultiPolygon"}:
-            geom = geom.centroid
-        coords.append((geom.y, geom.x))
+    for step in path:
+        stop = step[0]
+        node = graph.nodes.get(stop)
+        if not node or node.lat is None or node.lon is None:
+            print(f"No coordinates for stop '{stop}'")
+            return None
+        coords.append((node.lat, node.lon))
     m = folium.Map(location=coords[0], zoom_start=13)
     folium.PolyLine(coords, color="blue").add_to(m)
     for (step, (lat, lon)) in zip(path, coords):
@@ -142,7 +131,7 @@ def run_visual_cli() -> None:
                 line_str = line if line is not None else "start"
                 print(f"Take {line_str} to {stop} arriving at {minutes_to_hhmm(arr)}")
 
-            filename = save_route_map(path)
+            filename = save_route_map(graph, path)
             if filename:
                 abspath = os.path.abspath(filename)
                 print(f"Map saved to {abspath}")

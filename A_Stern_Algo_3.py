@@ -21,17 +21,40 @@ class Edge:
 class Node:
     name: str
     edges: List[Edge]
+    lat: Optional[float] = None
+    lon: Optional[float] = None
 
 class Graph:
     """Simple graph structure to store nodes and weighted edges."""
     def __init__(self):
         self.nodes: Dict[str, Node] = {}
 
-    def add_edge(self, source: str, target: str, line: str, departure: float, travel_time: float) -> None:
+    def add_edge(
+        self,
+        source: str,
+        target: str,
+        line: str,
+        departure: float,
+        travel_time: float,
+        source_lat: Optional[float] = None,
+        source_lon: Optional[float] = None,
+        target_lat: Optional[float] = None,
+        target_lon: Optional[float] = None,
+    ) -> None:
         if source not in self.nodes:
-            self.nodes[source] = Node(name=source, edges=[])
+            self.nodes[source] = Node(name=source, edges=[], lat=source_lat, lon=source_lon)
+        else:
+            if source_lat is not None:
+                self.nodes[source].lat = source_lat
+            if source_lon is not None:
+                self.nodes[source].lon = source_lon
         if target not in self.nodes:
-            self.nodes[target] = Node(name=target, edges=[])
+            self.nodes[target] = Node(name=target, edges=[], lat=target_lat, lon=target_lon)
+        else:
+            if target_lat is not None:
+                self.nodes[target].lat = target_lat
+            if target_lon is not None:
+                self.nodes[target].lon = target_lon
         self.nodes[source].edges.append(
             Edge(target=target, line=line, departure=departure, travel_time=travel_time)
         )
@@ -114,7 +137,21 @@ def load_graph_from_csv(path: str) -> Graph:
                 line = row["route_short_name"]
                 travel_time = parse_travel_time(prev_row["travel_time_to_next_stop"])
                 departure = parse_time_to_minutes(prev_row["departure_time"])
-                g.add_edge(source, target, line, departure, travel_time)
+                s_lat = float(prev_row["stop_lat"]) if prev_row["stop_lat"] else None
+                s_lon = float(prev_row["stop_lon"]) if prev_row["stop_lon"] else None
+                t_lat = float(row["stop_lat"]) if row["stop_lat"] else None
+                t_lon = float(row["stop_lon"]) if row["stop_lon"] else None
+                g.add_edge(
+                    source,
+                    target,
+                    line,
+                    departure,
+                    travel_time,
+                    s_lat,
+                    s_lon,
+                    t_lat,
+                    t_lon,
+                )
             prev_row = row
     return g
 

@@ -271,16 +271,66 @@ def astar_reverse(
 def null_heuristic(node: str, goal: str) -> float:
     return 0
 
-if __name__ == "__main__":
-    # Load graph from CSV file. Fallback to the test file if the full file is
-    # not present.
-    csv_file = r"Vollständige_CSV_mit_Zeiten.csv"
+
+def load_default_graph(
+    csv_file: str = "Vollständige_CSV_mit_Zeiten.csv",
+    fallback: str = "Test_CSV_with_travel_times.csv",
+) -> Graph:
+    """Load the transit graph, falling back to a small test file."""
     try:
-        graph = load_graph_from_csv(csv_file)
+        return load_graph_from_csv(csv_file)
     except FileNotFoundError:
         print(f"CSV '{csv_file}' not found. Using test data instead.")
-        graph = load_graph_from_csv("Test_CSV_with_travel_times.csv")
+        return load_graph_from_csv(fallback)
 
+
+def find_route(
+    graph: Graph,
+    start: str,
+    goal: str,
+    start_minutes: float,
+    *,
+    reverse: bool = False,
+    sort_by: str = "time",
+    heuristic: Callable[[str, str], float] = null_heuristic,
+) -> Optional[List[Tuple[str, Optional[str], float]]]:
+    """Return a route computed by ``astar`` or ``astar_reverse``."""
+
+    if sort_by.startswith("time"):
+        time_weight = 1.0
+        penalty = 0.1
+    elif sort_by.startswith("transfers"):
+        time_weight = 0.0
+        penalty = 1.0
+    else:
+        raise ValueError(f"Invalid sort mode: {sort_by}")
+
+    if reverse:
+        return astar_reverse(
+            graph,
+            start,
+            goal,
+            heuristic=heuristic,
+            arrival_time=start_minutes,
+            time_weight=time_weight,
+            transfer_penalty=penalty,
+        )
+    else:
+        return astar(
+            graph,
+            start,
+            goal,
+            heuristic=heuristic,
+            start_time=start_minutes,
+            time_weight=time_weight,
+            transfer_penalty=penalty,
+        )
+
+
+def run_cli() -> None:
+    """Interactive command line interface using :func:`find_route`."""
+
+    graph = load_default_graph()
     stop_names = list(graph.nodes.keys())
 
     while True:
@@ -304,7 +354,9 @@ if __name__ == "__main__":
             print(f"Unknown stop: {goal_query}")
             continue
 
-        choice_time = input("Zeit wählen [now/abfahrt/anreise] (or 'reset'/'exit'): ").strip().lower()
+        choice_time = input(
+            "Zeit wählen [now/abfahrt/anreise] (or 'reset'/'exit'): "
+        ).strip().lower()
         if choice_time == "exit":
             break
         if choice_time == "reset":
@@ -335,43 +387,22 @@ if __name__ == "__main__":
             start_minutes = now.hour * 60 + now.minute + now.second / 60.0
             reverse = False
 
-        choice = input("Sort route by time or transfers? [time/transfers] (or 'reset'/'exit'): ").strip().lower()
+        choice = input(
+            "Sort route by time or transfers? [time/transfers] (or 'reset'/'exit'): "
+        ).strip().lower()
         if choice == "exit":
             break
         if choice == "reset":
             continue
-        if choice.startswith("time"):
-            time_weight = 1.0
-            penalty = 0.1
-        elif choice.startswith("transfers"):
-            time_weight = 0.0
-            penalty = 1.0
-        else:
-            print("Invalid choice. Defaulting to time.")
-            time_weight = 1.0
-            penalty = 0.1
 
-
-        if reverse:
-            path = astar_reverse(
-                graph,
-                start,
-                goal,
-                heuristic=null_heuristic,
-                arrival_time=start_minutes,
-                time_weight=time_weight,
-                transfer_penalty=penalty,
-            )
-        else:
-            path = astar(
-                graph,
-                start,
-                goal,
-                heuristic=null_heuristic,
-                start_time=start_minutes,
-                time_weight=time_weight,
-                transfer_penalty=penalty,
-            )
+        path = find_route(
+            graph,
+            start,
+            goal,
+            start_minutes,
+            reverse=reverse,
+            sort_by=choice,
+        )
 
         if path:
             print("Found path:")
@@ -381,11 +412,17 @@ if __name__ == "__main__":
                 if len(step) == 3:
                     stop, line, arr = step
                     line_str = line if line is not None else "start"
-                    print(f"Take {line_str} to {stop} arriving at {minutes_to_hhmm(arr)}")
+                    print(
+                        f"Take {line_str} to {stop} arriving at {minutes_to_hhmm(arr)}"
+                    )
                 else:
                     stop, line = step
                     line_str = line if line is not None else "start"
                     print(f"Take {line_str} to {stop}")
         else:
             print("No path found.")
+
+
+if __name__ == "__main__":
+    run_cli()
 

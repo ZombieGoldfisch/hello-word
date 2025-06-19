@@ -26,7 +26,7 @@ def save_route_map(
     """
 
     stops = [step[0] for step in path]
-     coords = []
+    coords = []
     for stop in stops:
         try:
             geom = ox.geocode_to_gdf(stop).loc[0, "geometry"]
@@ -44,13 +44,6 @@ def save_route_map(
                 continue
         if geom.geom_type in {"Polygon", "MultiPolygon"}:
             geom = geom.centroid
-        coords.append((geom.y, geom.x))
-    coords = []
-    for _, row in gdf.iterrows():
-        geom = row.geometry
-        if geom.geom_type in {"Polygon", "MultiPolygon"}:
-            geom = geom.centroid
-        # assume geometry is a point after potential conversion
         coords.append((geom.y, geom.x))
     m = folium.Map(location=coords[0], zoom_start=13)
     folium.PolyLine(coords, color="blue").add_to(m)

@@ -27,12 +27,19 @@ def save_route_map(
 
     stops = [step[0] for step in path]
     try:
-        gdf = ox.geocode_to_gdf(stops)
+        # allow geocoding results that return points
+        gdf = ox.geocode_to_gdf(stops, buffer_dist=0)
     except Exception as exc:
         print(f"Could not geocode stops: {exc}")
         return None
 
-    coords = [(row.geometry.y, row.geometry.x) for _, row in gdf.iterrows()]
+    coords = []
+    for _, row in gdf.iterrows():
+        geom = row.geometry
+        if geom.geom_type in {"Polygon", "MultiPolygon"}:
+            geom = geom.centroid
+        # assume geometry is a point after potential conversion
+        coords.append((geom.y, geom.x))
     m = folium.Map(location=coords[0], zoom_start=13)
     folium.PolyLine(coords, color="blue").add_to(m)
     for (step, (lat, lon)) in zip(path, coords):

@@ -27,7 +27,8 @@ def save_route_map(
 
     stops = [step[0] for step in path]
     try:
-        gdf = ox.geocode_to_gdf(stops)
+        # allow geocoding results that return points
+        gdf = ox.geocode_to_gdf(stops, buffer_dist=0)
     except Exception as exc:
         print(f"Could not geocode stops: {exc}")
         return None

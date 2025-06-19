@@ -10,5 +10,16 @@ Bei dem Projekt haben wir auch noch die Einschränkung, dass wir nur eine Geocod
 Für den ÖPNV könnten wir die GTFs-Datenbank nutzen, mal schauen wie weit die uns bringt.
 Für Rad, Fuß und MV sollten wir OSMNX nutzen (auch eine Datenbank)
 
-Für das gesamte Projekt gilt, dass der Code modular aufgebaut werden muss. 
+Für das gesamte Projekt gilt, dass der Code modular aufgebaut werden muss.
 Und wenn wir genügend Zeit haben (optional) wäre eine Visualisierung des ganzen (Wie bei Maps bspw.) ganz cool.“
+
+## Voraussetzungen
+
+Für die Visualisierung wird nun das Paket `osmnx` benötigt:
+
+```bash
+pip install osmnx
+```
+
+In `save_route_map` kann über den Parameter `network_type` das genutzte
+OSM-Netz gewählt werden (z.B. `"drive"`, `"walk"`, `"bike"`, `"rail"`).

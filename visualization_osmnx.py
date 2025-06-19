@@ -26,13 +26,25 @@ def save_route_map(
     """
 
     stops = [step[0] for step in path]
-    try:
-        # allow geocoding results that return points
-        gdf = ox.geocode_to_gdf(stops, buffer_dist=0)
-    except Exception as exc:
-        print(f"Could not geocode stops: {exc}")
-        return None
-
+     coords = []
+    for stop in stops:
+        try:
+            geom = ox.geocode_to_gdf(stop).loc[0, "geometry"]
+        except Exception:
+            try:
+                result = ox.geocode(stop)
+            except Exception as exc:
+                print(f"Could not geocode stop '{stop}': {exc}")
+                return None
+            if hasattr(result, "geom_type"):
+                geom = result
+            else:
+                lat, lon = result
+                coords.append((lat, lon))
+                continue
+        if geom.geom_type in {"Polygon", "MultiPolygon"}:
+            geom = geom.centroid
+        coords.append((geom.y, geom.x))
     coords = []
     for _, row in gdf.iterrows():
         geom = row.geometry

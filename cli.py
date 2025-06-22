@@ -104,7 +104,6 @@ def run_cli() -> None:
             filename = save_route_map(graph, path)
             if filename:
                 print(f"Map saved to {filename}")
-
         else:
             print("No path found.")
 

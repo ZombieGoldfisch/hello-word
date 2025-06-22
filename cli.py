@@ -7,8 +7,8 @@ from routing import (
     parse_time_to_minutes,
     minutes_to_hhmm,
 )
-from visualization_osmnx import save_route_map
 
+from visualization_osmnx import save_route_map
 
 def run_cli() -> None:
     """Interactive command line interface using :func:`find_route`."""

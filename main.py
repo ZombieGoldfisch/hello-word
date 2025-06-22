@@ -1,11 +1,7 @@
-"""Application entry point that launches the command line interface.
 
-Routes are visualized automatically using :func:`save_route_map` from the
-``visualization_osmnx`` module.
-"""
-
+from visualization_osmnx import run_visual_cli
 from cli import run_cli
 
-
 if __name__ == "__main__":
+    run_visual_cli()
     run_cli()

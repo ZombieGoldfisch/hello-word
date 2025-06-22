@@ -7,7 +7,6 @@ import networkx as nx
 from graph import Graph
 from routing import minutes_to_hhmm
 
-
 def save_route_map(
     graph: Graph,
     path: List[Tuple[str, Optional[str], float]],
@@ -64,6 +63,3 @@ def save_route_map(
 
     m.save(filename)
     return filename
-
-
-

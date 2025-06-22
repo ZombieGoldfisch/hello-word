@@ -1,89 +1,20 @@
 from dataclasses import dataclass, field
-from typing import Dict, Tuple, List, Callable, Any, Optional
+from typing import Any, Callable, Dict, List, Optional, Tuple
 import heapq
 import csv
-from datetime import datetime
 import difflib
+
+from graph import Graph
+
 
 @dataclass(order=True)
 class PrioritizedItem:
     priority: float
-    node: Any=field(compare=False)
-
-@dataclass
-class Edge:
-    target: str
-    line: str
-    departure: float
-    travel_time: float
-
-@dataclass
-class Node:
-    name: str
-    edges: List[Edge]
-    lat: Optional[float] = None
-    lon: Optional[float] = None
-
-class Graph:
-    """Simple graph structure to store nodes and weighted edges."""
-    def __init__(self):
-        self.nodes: Dict[str, Node] = {}
-
-    def add_edge(
-        self,
-        source: str,
-        target: str,
-        line: str,
-        departure: float,
-        travel_time: float,
-        source_lat: Optional[float] = None,
-        source_lon: Optional[float] = None,
-        target_lat: Optional[float] = None,
-        target_lon: Optional[float] = None,
-    ) -> None:
-        if source not in self.nodes:
-            self.nodes[source] = Node(name=source, edges=[], lat=source_lat, lon=source_lon)
-        else:
-            if source_lat is not None:
-                self.nodes[source].lat = source_lat
-            if source_lon is not None:
-                self.nodes[source].lon = source_lon
-        if target not in self.nodes:
-            self.nodes[target] = Node(name=target, edges=[], lat=target_lat, lon=target_lon)
-        else:
-            if target_lat is not None:
-                self.nodes[target].lat = target_lat
-            if target_lon is not None:
-                self.nodes[target].lon = target_lon
-        self.nodes[source].edges.append(
-            Edge(target=target, line=line, departure=departure, travel_time=travel_time)
-        )
-
-    def neighbors(self, node: str) -> List[Edge]:
-        return list(self.nodes.get(node, Node(name=node, edges=[])).edges)
-
-    def reversed(self) -> "Graph":
-        """Return a new graph with all edges reversed.
-
-        The ``departure`` of the reversed edge corresponds to the arrival time
-        at the original target stop.
-        """
-        rev = Graph()
-        for source, node in self.nodes.items():
-            for edge in node.edges:
-                arrival = edge.departure + edge.travel_time
-                rev.add_edge(edge.target, source, edge.line, arrival, edge.travel_time)
-        return rev
+    node: Any = field(compare=False)
 
 
 def parse_travel_time(td_str: str) -> float:
-    """Convert a ``travel_time_to_next_stop`` string to minutes.
-
-    The GTFS data usually stores times either in ``HH:MM:SS`` or
-    ``"<days> days HH:MM:SS"`` format.  For convenience when taking user
-    input we also allow ``HH:MM`` where seconds are assumed to be ``00``.
-    """
-
+    """Convert a ``travel_time_to_next_stop`` string to minutes."""
     if not td_str:
         return 0.0
 
@@ -155,6 +86,7 @@ def load_graph_from_csv(path: str) -> Graph:
             prev_row = row
     return g
 
+
 def astar(
     graph: Graph,
     start: str,
@@ -164,22 +96,7 @@ def astar(
     time_weight: float = 1.0,
     transfer_penalty: float = 5.0,
 ) -> Optional[List[Tuple[str, Optional[str], float]]]:
-    """Compute shortest path using A* algorithm with line awareness.
-
-    Args:
-        graph: Graph object containing nodes and weighted edges.
-        start: Node name where the route begins.
-        goal: Destination node name.
-        heuristic: Function estimating cost from a node to the goal.
-        time_weight: Multiplier applied to the travel time of each edge.
-        transfer_penalty: Additional cost when switching lines.
-
-    Returns:
-        List of tuples ``(stop, line, arrival_time)`` representing the path.
-        The first element's line is ``None`` because no line has been taken
-        yet. ``None`` is returned if no path exists. ``arrival_time`` is the
-        actual arrival time in minutes past midnight, without any penalties.
-    """
+    """Compute shortest path using A* algorithm with line awareness."""
     open_set: List[PrioritizedItem] = []
     start_state = (start, None)
     heapq.heappush(open_set, PrioritizedItem(priority=start_time, node=start_state))
@@ -203,7 +120,6 @@ def astar(
                 current_state = prev
             return list(reversed(path))
 
-        current_time = g_score[(current_node, current_line)]
         current_arrival = arrival_times[(current_node, current_line)]
         for edge in graph.neighbors(current_node):
             if edge.departure < current_arrival:
@@ -239,19 +155,7 @@ def astar_reverse(
     time_weight: float = 1.0,
     transfer_penalty: float = 5.0,
 ) -> Optional[List[Tuple[str, Optional[str], float]]]:
-    """Backward search variant of ``astar``.
-
-    This function searches from ``goal`` towards ``start`` in order to find the
-    latest possible departure time that still results in an arrival at
-    ``goal`` by ``arrival_time``.
-
-    Returns:
-        A list of tuples ``(stop, line, arrival_time)`` representing the path
-        from ``start`` to ``goal``. ``arrival_time`` denotes the time at which
-        the traveller must be at ``stop`` when following the computed route.
-        ``None`` is returned if no path exists.
-    """
-
+    """Backward search variant of ``astar``."""
     rev_graph = graph.reversed()
 
     open_set: List[PrioritizedItem] = []
@@ -304,7 +208,7 @@ def astar_reverse(
 
     return None
 
-# Example heuristic: straight-line distance (requires coordinate lookup)
+
 def null_heuristic(node: str, goal: str) -> float:
     return 0
 
@@ -332,7 +236,6 @@ def find_route(
     heuristic: Callable[[str, str], float] = null_heuristic,
 ) -> Optional[List[Tuple[str, Optional[str], float]]]:
     """Return a route computed by ``astar`` or ``astar_reverse``."""
-
     if sort_by.startswith("time"):
         time_weight = 1.0
         penalty = 0.1
@@ -362,104 +265,3 @@ def find_route(
             time_weight=time_weight,
             transfer_penalty=penalty,
         )
-
-
-def run_cli() -> None:
-    """Interactive command line interface using :func:`find_route`."""
-
-    graph = load_default_graph()
-    stop_names = list(graph.nodes.keys())
-
-    while True:
-        start_query = input("Start stop name (or 'reset'/'exit'): ").strip()
-        if start_query.lower() == "exit":
-            break
-        if start_query.lower() == "reset":
-            continue
-        start = resolve_stop(start_query, stop_names)
-        if start is None:
-            print(f"Unknown stop: {start_query}")
-            continue
-
-        goal_query = input("Goal stop name (or 'reset'/'exit'): ").strip()
-        if goal_query.lower() == "exit":
-            break
-        if goal_query.lower() == "reset":
-            continue
-        goal = resolve_stop(goal_query, stop_names)
-        if goal is None:
-            print(f"Unknown stop: {goal_query}")
-            continue
-
-        choice_time = input(
-            "Zeit wählen [now/abfahrt/anreise] (or 'reset'/'exit'): "
-        ).strip().lower()
-        if choice_time == "exit":
-            break
-        if choice_time == "reset":
-            continue
-        if choice_time == "now":
-            now = datetime.now()
-            start_minutes = now.hour * 60 + now.minute + now.second / 60.0
-            reverse = False
-        elif choice_time == "abfahrt":
-            dep_str = input("Abfahrtszeit (HH:MM) (or 'reset'/'exit'): ").strip()
-            if dep_str.lower() == "exit":
-                break
-            if dep_str.lower() == "reset":
-                continue
-            start_minutes = parse_time_to_minutes(dep_str)
-            reverse = False
-        elif choice_time == "anreise":
-            arr_str = input("Ankunftszeit (HH:MM) (or 'reset'/'exit'): ").strip()
-            if arr_str.lower() == "exit":
-                break
-            if arr_str.lower() == "reset":
-                continue
-            start_minutes = parse_time_to_minutes(arr_str)
-            reverse = True
-        else:
-            print("Ungültige Wahl, benutze aktuelle Zeit.")
-            now = datetime.now()
-            start_minutes = now.hour * 60 + now.minute + now.second / 60.0
-            reverse = False
-
-        choice = input(
-            "Sort route by time or transfers? [time/transfers] (or 'reset'/'exit'): "
-        ).strip().lower()
-        if choice == "exit":
-            break
-        if choice == "reset":
-            continue
-
-        path = find_route(
-            graph,
-            start,
-            goal,
-            start_minutes,
-            reverse=reverse,
-            sort_by=choice,
-        )
-
-        if path:
-            print("Found path:")
-            start_stop = path[0][0]
-            print(f"Start at {start_stop}")
-            for step in path[1:]:
-                if len(step) == 3:
-                    stop, line, arr = step
-                    line_str = line if line is not None else "start"
-                    print(
-                        f"Take {line_str} to {stop} arriving at {minutes_to_hhmm(arr)}"
-                    )
-                else:
-                    stop, line = step
-                    line_str = line if line is not None else "start"
-                    print(f"Take {line_str} to {stop}")
-        else:
-            print("No path found.")
-
-
-if __name__ == "__main__":
-    run_cli()
-

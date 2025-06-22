@@ -15,11 +15,13 @@ Und wenn wir genügend Zeit haben (optional) wäre eine Visualisierung des ganze
 
 ## Voraussetzungen
 
-Für die Visualisierung wird nun das Paket `osmnx` benötigt:
+Für die optionale Visualisierung werden die Pakete `osmnx` und `folium` benötigt:
 
 ```bash
-pip install osmnx
+pip install osmnx folium
 ```
 
-In `save_route_map` kann über den Parameter `network_type` das genutzte
-OSM-Netz gewählt werden (z.B. `"drive"`, `"walk"`, `"bike"`, `"rail"`).
+Fehlen sie, läuft die Kommandozeile dennoch – es wird dann lediglich
+keine HTML-Karte erzeugt. In `save_route_map` kann über den Parameter
+`network_type` das genutzte OSM-Netz gewählt werden (z.B. `"drive"`,
+`"walk"`, `"bike"`, `"rail"`).

@@ -22,6 +22,42 @@ pip install osmnx folium
 ```
 
 Fehlen sie, läuft die Kommandozeile dennoch – es wird dann lediglich
-keine HTML-Karte erzeugt. In `save_route_map` kann über den Parameter
-`network_type` das genutzte OSM-Netz gewählt werden (z.B. `"drive"`,
-`"walk"`, `"bike"`, `"rail"`).
+keine HTML-Karte erzeugt.
+
+Zusätzlich wird für das optionale Adressrouting das Paket `geopy`
+benötigt.  Alle optionalen Abhängigkeiten können gemeinsam installiert
+werden mit
+
+```bash
+pip install osmnx folium geopy
+```
+
+In `save_route_map` kann über den Parameter `network_type` das genutzte
+OSM-Netz gewählt werden (z.B. `"drive"`, `"walk"`, `"bike"`, `"rail"`).
+
+## Beispiele
+
+### Adressrouting
+
+```python
+from geopy.geocoders import Nominatim
+import osmnx as ox
+import networkx as nx
+
+geolocator = Nominatim(user_agent="routing-demo")
+orig = geolocator.geocode("Hauptbahnhof München")
+dest = geolocator.geocode("Marienplatz München")
+
+# Straßennetz um den Startpunkt laden und Route berechnen
+G = ox.graph_from_point((orig.latitude, orig.longitude), dist=3000,
+                        network_type="walk")
+start = ox.nearest_nodes(G, orig.longitude, orig.latitude)
+goal = ox.nearest_nodes(G, dest.longitude, dest.latitude)
+route = nx.shortest_path(G, start, goal, weight="length")
+```
+
+### Moduswahl bei der Visualisierung
+
+```python
+filename = save_route_map(graph, path, network_type="bike")
+```

@@ -7,8 +7,8 @@ import folium
 import osmnx as ox
 import networkx as nx
 
-from A_Stern_Algo_3 import (
-    Graph,
+from graph import Graph
+from routing import (
     load_default_graph,
     find_route,
     resolve_stop,

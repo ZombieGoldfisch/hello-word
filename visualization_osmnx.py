@@ -173,5 +173,3 @@ def run_visual_cli() -> None:
             print("No path found.")
 
 
-if __name__ == "__main__":
-    run_visual_cli()

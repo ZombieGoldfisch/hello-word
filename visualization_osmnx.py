@@ -1,8 +1,11 @@
 from typing import List, Tuple, Optional
 
+import folium
+import osmnx as ox
+import networkx as nx
+
 from graph import Graph
 from routing import minutes_to_hhmm
-
 
 def save_route_map(
     graph: Graph,
@@ -18,14 +21,6 @@ def save_route_map(
     resulting HTML file is returned or ``None`` if any stop lacks coordinate
     data.
     """
-
-    try:
-        import folium
-        import osmnx as ox
-        import networkx as nx
-    except Exception:
-        print("Visualization requires 'folium' and 'osmnx'.")
-        return None
 
     coords = []
     for step in path:
@@ -68,6 +63,3 @@ def save_route_map(
 
     m.save(filename)
     return filename
-
-
-

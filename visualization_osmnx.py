@@ -1,6 +1,3 @@
-import os
-import webbrowser
-from datetime import datetime
 from typing import List, Tuple, Optional
 
 import folium
@@ -8,6 +5,7 @@ import osmnx as ox
 import networkx as nx
 
 from graph import Graph
+from routing import minutes_to_hhmm
 from routing import (
     load_default_graph,
     find_route,
@@ -73,10 +71,6 @@ def save_route_map(
 
     m.save(filename)
     return filename
-
-
-def run_visual_cli() -> None:
-    """Interactive CLI that also saves a map of the route."""
 
     graph = load_default_graph()
     stop_names = list(graph.nodes.keys())
@@ -171,5 +165,3 @@ def run_visual_cli() -> None:
                     pass
         else:
             print("No path found.")
-
-

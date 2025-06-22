@@ -8,6 +8,7 @@ from routing import (
     minutes_to_hhmm,
 )
 
+from visualization_osmnx import save_route_map
 
 def run_cli() -> None:
     """Interactive command line interface using :func:`find_route`."""
@@ -99,6 +100,11 @@ def run_cli() -> None:
                     stop, line = step
                     line_str = line if line is not None else "start"
                     print(f"Take {line_str} to {stop}")
+
+            filename = save_route_map(graph, path)
+            if filename:
+                print(f"Map saved to {filename}")
+
         else:
             print("No path found.")
 

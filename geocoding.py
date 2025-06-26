@@ -42,3 +42,4 @@ def geocode_address(query: str) -> Tuple[float, float]:
     raise RuntimeError(
         "No geocoder available (geopy or osmnx required for geocoding)"
     )
+

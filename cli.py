@@ -33,6 +33,11 @@ def classify_query(query: str, stop_names: List[str]) -> Tuple[Optional[str], Op
     if stop:
         return stop, None
 
+    # Try again with a lower cutoff to catch partial or shorter names
+    stop = resolve_stop(query, stop_names, cutoff=0.6)
+    if stop:
+        return stop, None
+
     coords = geocode_address(query)
     return None, coords
 

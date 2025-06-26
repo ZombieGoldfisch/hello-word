@@ -9,7 +9,7 @@ from routing import (
 )
 from geocoding import geocode_address
 from osm_routing import find_osm_route
-from visualization_osmnx import save_route_map
+from visualization_osmnx import save_route_map, save_coords_map
 
 def run_cli(network_type: str = "drive") -> None:
     """Interactive command line interface using :func:`find_route` or
@@ -142,6 +142,9 @@ def run_cli(network_type: str = "drive") -> None:
             print("Route coordinates:")
             for lat, lon in coords_path:
                 print(f"  {lat:.5f}, {lon:.5f}")
+            filename = save_coords_map(coords_path, network_type=network_type)
+            if filename:
+                print(f"Map saved to {filename}")
 
 
 if __name__ == "__main__":

@@ -105,3 +105,4 @@ def save_coords_map(
 
     m.save(filename)
     return filename
+

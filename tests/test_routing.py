@@ -44,5 +44,40 @@ class RoutingTests(unittest.TestCase):
         stop = find_nearest_stop(self.graph, (49.0584, 8.7970))
         self.assertEqual(stop, "Oberderdingen Freibad")
 
+
+class ClassifyQueryTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.graph = load_graph_from_csv("Test_CSV_with_travel_times.csv")
+        cls.stop_names = list(cls.graph.nodes.keys())
+
+    def setUp(self):
+        # Provide dummy modules so ``cli`` can be imported without optional
+        # dependencies installed.
+        import sys, types
+        sys.modules.setdefault("osmnx", types.ModuleType("osmnx"))
+        sys.modules.setdefault("networkx", types.ModuleType("networkx"))
+        sys.modules.setdefault("folium", types.ModuleType("folium"))
+        from importlib import reload
+        import cli as cli_module
+        reload(cli_module)
+        self.classify_query = cli_module.classify_query
+
+    def test_case_insensitive(self):
+        stop, coords = self.classify_query("oberderdingen freibad", self.stop_names)
+        self.assertEqual(stop, "Oberderdingen Freibad")
+        self.assertIsNone(coords)
+
+    def test_minor_typo(self):
+        stop, coords = self.classify_query("Oberderdingen Frebad", self.stop_names)
+        self.assertEqual(stop, "Oberderdingen Freibad")
+        self.assertIsNone(coords)
+
+    def test_lower_cutoff_match(self):
+        stop, coords = self.classify_query("Oberderdingen", self.stop_names)
+        self.assertEqual(stop, "Oberderdingen Amthof")
+        self.assertIsNone(coords)
+
+
 if __name__ == "__main__":
     unittest.main()

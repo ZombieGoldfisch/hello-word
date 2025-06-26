@@ -15,6 +15,13 @@ Und wenn wir genügend Zeit haben (optional) wäre eine Visualisierung des ganze
 
 ## Voraussetzungen
 
+Alle benötigten Abhängigkeiten sind in `requirements.txt` aufgelistet und
+können gemeinsam installiert werden mit
+
+```bash
+pip install -r requirements.txt
+```
+
 Für die optionale Visualisierung werden die Pakete `osmnx` und `folium` benötigt:
 
 ```bash

@@ -10,7 +10,7 @@ from routing import (
     find_nearest_stop,
 )
 from geocoding import geocode_address
-from osm_routing import find_osm_route
+from osm_routing import find_osm_route, RouteNotFoundError
 from visualization_osmnx import save_route_map, save_coords_map
 
 
@@ -93,7 +93,14 @@ def run_cli(network_type: str = "drive") -> None:
         if mode in {"auto", "rad", "fuss"}:
             nt_map = {"auto": "drive", "rad": "bike", "fuss": "walk"}
             nt = nt_map[mode]
-            coords_path = find_osm_route(start_coords, goal_coords, network_type=nt)
+            try:
+                coords_path = find_osm_route(
+                    start_coords, goal_coords, network_type=nt
+                )
+            except RouteNotFoundError as exc:
+                print(exc)
+                continue
+
             print("Route coordinates:")
             for lat, lon in coords_path:
                 print(f"  {lat:.5f}, {lon:.5f}")
@@ -151,13 +158,23 @@ def run_cli(network_type: str = "drive") -> None:
         if start is None and start_stop is not None:
             node = graph.nodes.get(start_stop)
             if node and node.lat is not None and node.lon is not None:
-                walk_start = find_osm_route(start_coords, (node.lat, node.lon), network_type="walk")
+                try:
+                    walk_start = find_osm_route(
+                        start_coords, (node.lat, node.lon), network_type="walk"
+                    )
+                except RouteNotFoundError as exc:
+                    print(f"Walk to start failed: {exc}")
 
         walk_end = None
         if goal is None and goal_stop is not None:
             node = graph.nodes.get(goal_stop)
             if node and node.lat is not None and node.lon is not None:
-                walk_end = find_osm_route((node.lat, node.lon), goal_coords, network_type="walk")
+                try:
+                    walk_end = find_osm_route(
+                        (node.lat, node.lon), goal_coords, network_type="walk"
+                    )
+                except RouteNotFoundError as exc:
+                    print(f"Walk to destination failed: {exc}")
 
         if start_stop is None or goal_stop is None:
             print("Could not determine nearby stops for transit routing.")

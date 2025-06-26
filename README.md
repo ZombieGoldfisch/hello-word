@@ -71,6 +71,7 @@ filename = save_route_map(graph, path, network_type="bike")
 
 ## Grafische Oberfläche
 
+
 Eine einfache GUI auf Basis von ``tkinter`` kann direkt 
 mit dem Hauptskript gestartet werden:
 
@@ -79,6 +80,7 @@ python main.py gui
 ```
 
 Dort lassen sich Start und Ziel eingeben, das
+
 Verkehrsmittel wählen sowie optional eine Abfahrts- oder Ankunftszeit
 angeben. Nach dem Klick auf "Route berechnen" wird der berechnete Weg
 im Textfeld ausgegeben und – sofern ``osmnx`` und ``folium`` verfügbar

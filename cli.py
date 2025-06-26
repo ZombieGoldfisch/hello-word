@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import List, Optional, Tuple
 
 from routing import (
     load_default_graph,
@@ -11,6 +12,29 @@ from routing import (
 from geocoding import geocode_address
 from osm_routing import find_osm_route
 from visualization_osmnx import save_route_map, save_coords_map
+
+
+def classify_query(query: str, stop_names: List[str]) -> Tuple[Optional[str], Optional[Tuple[float, float]]]:
+    """Determine whether ``query`` refers to a stop or an address.
+
+    If ``query`` matches a known stop name (case-insensitive or with a high
+    similarity cutoff), return the stop name and ``None`` for the coordinates.
+    Otherwise try to geocode the query and return ``(None, (lat, lon))``.
+    ``geocode_address`` may raise exceptions which the caller should handle.
+    """
+
+    # Exact match (case-insensitive) first
+    stop_lookup = {name.lower(): name for name in stop_names}
+    if query.lower() in stop_lookup:
+        return stop_lookup[query.lower()], None
+
+    # Fuzzy match with a higher cutoff for reliability
+    stop = resolve_stop(query, stop_names, cutoff=0.85)
+    if stop:
+        return stop, None
+
+    coords = geocode_address(query)
+    return None, coords
 
 def run_cli(network_type: str = "drive") -> None:
     """Interactive command line interface for different routing modes.
@@ -40,29 +64,26 @@ def run_cli(network_type: str = "drive") -> None:
         if mode == "reset":
             continue
 
-        start = resolve_stop(start_query, stop_names)
-        goal = resolve_stop(goal_query, stop_names)
+        try:
+            start, start_coords = classify_query(start_query, stop_names)
+        except Exception as exc:
+            print(f"Failed to resolve '{start_query}': {exc}")
+            continue
 
-        if start is None:
-            try:
-                start_coords = geocode_address(start_query)
-            except Exception as exc:
-                print(f"Failed to geocode '{start_query}': {exc}")
-                continue
-        else:
+        try:
+            goal, goal_coords = classify_query(goal_query, stop_names)
+        except Exception as exc:
+            print(f"Failed to resolve '{goal_query}': {exc}")
+            continue
+
+        if start is not None:
             node = graph.nodes.get(start)
             if not node or node.lat is None or node.lon is None:
                 print(f"No coordinates for stop '{start}'")
                 continue
             start_coords = (node.lat, node.lon)
 
-        if goal is None:
-            try:
-                goal_coords = geocode_address(goal_query)
-            except Exception as exc:
-                print(f"Failed to geocode '{goal_query}': {exc}")
-                continue
-        else:
+        if goal is not None:
             node = graph.nodes.get(goal)
             if not node or node.lat is None or node.lon is None:
                 print(f"No coordinates for stop '{goal}'")

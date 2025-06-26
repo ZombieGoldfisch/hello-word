@@ -3,6 +3,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 import heapq
 import csv
 import difflib
+from math import radians, sin, cos, sqrt, atan2
 
 from graph import Graph
 
@@ -53,6 +54,31 @@ def resolve_stop(query: str, stop_names: List[str], cutoff: float = 0.6) -> Opti
     """Return the closest matching stop name for ``query`` or ``None``."""
     matches = difflib.get_close_matches(query, stop_names, n=1, cutoff=cutoff)
     return matches[0] if matches else None
+
+
+def haversine(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Return distance in kilometers between two lat/lon pairs."""
+    r = 6371.0
+    dlat = radians(lat2 - lat1)
+    dlon = radians(lon2 - lon1)
+    a = sin(dlat / 2) ** 2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon / 2) ** 2
+    c = 2 * atan2(sqrt(a), sqrt(1 - a))
+    return r * c
+
+
+def find_nearest_stop(graph: Graph, coords: Tuple[float, float]) -> Optional[str]:
+    """Return the name of the stop closest to ``coords``."""
+    best_stop: Optional[str] = None
+    best_dist = float("inf")
+    lat, lon = coords
+    for name, node in graph.nodes.items():
+        if node.lat is None or node.lon is None:
+            continue
+        dist = haversine(lat, lon, node.lat, node.lon)
+        if dist < best_dist:
+            best_dist = dist
+            best_stop = name
+    return best_stop
 
 
 def load_graph_from_csv(path: str) -> Graph:

@@ -1,7 +1,12 @@
 from typing import List, Tuple
 
-import osmnx as ox
 import networkx as nx
+import osmnx as ox
+
+
+class RouteNotFoundError(Exception):
+    """Raised when no OSM route between two points can be determined."""
+
 
 
 def find_osm_route(
@@ -29,7 +34,13 @@ def find_osm_route(
         center_lon = (start_coords[1] + goal_coords[1]) / 2
         G = ox.graph_from_point((center_lat, center_lon), dist=1000, network_type=network_type)
 
-    orig_node = ox.nearest_nodes(G, start_coords[1], start_coords[0])
-    dest_node = ox.nearest_nodes(G, goal_coords[1], goal_coords[0])
-    path = nx.shortest_path(G, orig_node, dest_node, weight="length")
+    try:
+        orig_node = ox.nearest_nodes(G, start_coords[1], start_coords[0])
+        dest_node = ox.nearest_nodes(G, goal_coords[1], goal_coords[0])
+        path = nx.shortest_path(G, orig_node, dest_node, weight="length")
+    except (nx.NetworkXNoPath, nx.NodeNotFound) as exc:
+        raise RouteNotFoundError("No route found between the given coordinates") from exc
+    except Exception as exc:
+        raise RouteNotFoundError(f"Routing failed: {exc}") from exc
+
     return [(G.nodes[n]["y"], G.nodes[n]["x"]) for n in path]

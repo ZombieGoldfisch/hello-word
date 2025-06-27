@@ -130,6 +130,7 @@ def astar(
     came_from: Dict[Tuple[str, Optional[str]], Optional[Tuple[str, Optional[str]]]] = {}
     g_score: Dict[Tuple[str, Optional[str]], float] = {start_state: start_time}
     arrival_times: Dict[Tuple[str, Optional[str]], float] = {start_state: start_time}
+    best_arrival: Dict[str, float] = {start: start_time}
 
     while open_set:
         current_state = heapq.heappop(open_set).node
@@ -150,12 +151,14 @@ def astar(
         for edge in graph.neighbors(current_node):
             if edge.departure < current_arrival:
                 continue
+            arrival_actual = edge.departure + edge.travel_time
+            if arrival_actual >= best_arrival.get(edge.target, float("inf")):
+                continue
             neighbor_state = (edge.target, edge.line)
             transfer_cost = 0
             if current_line is not None and edge.line != current_line:
                 transfer_cost = transfer_penalty
 
-            arrival_actual = edge.departure + edge.travel_time
             arrival_time = edge.departure + edge.travel_time * time_weight
             tentative_g_score = arrival_time + transfer_cost
 
@@ -163,6 +166,7 @@ def astar(
                 came_from[neighbor_state] = (current_node, current_line)
                 g_score[neighbor_state] = tentative_g_score
                 arrival_times[neighbor_state] = arrival_actual
+                best_arrival[edge.target] = arrival_actual
                 f_score = tentative_g_score + heuristic(edge.target, goal)
                 heapq.heappush(
                     open_set,
@@ -191,6 +195,7 @@ def astar_reverse(
     came_from: Dict[Tuple[str, Optional[str]], Optional[Tuple[str, Optional[str]]]] = {}
     best_time: Dict[Tuple[str, Optional[str]], float] = {start_state: arrival_time}
     arrival_times: Dict[Tuple[str, Optional[str]], float] = {start_state: arrival_time}
+    best_departure: Dict[str, float] = {goal: arrival_time}
 
     while open_set:
         current_state = heapq.heappop(open_set).node
@@ -213,6 +218,9 @@ def astar_reverse(
         for edge in rev_graph.neighbors(current_node):
             if edge.departure > current_time:
                 continue
+            departure_actual = edge.departure - edge.travel_time
+            if departure_actual <= best_departure.get(edge.target, float("-inf")):
+                continue
             neighbor_state = (edge.target, edge.line)
             transfer_cost = 0
             if current_line is not None and edge.line != current_line:
@@ -226,6 +234,7 @@ def astar_reverse(
                 came_from[neighbor_state] = (current_node, current_line)
                 best_time[neighbor_state] = tentative_time
                 arrival_times[neighbor_state] = arrival_actual
+                best_departure[edge.target] = departure_actual
                 f_score = -tentative_time + heuristic(edge.target, start)
                 heapq.heappush(
                     open_set,

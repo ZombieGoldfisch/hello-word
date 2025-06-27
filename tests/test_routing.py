@@ -78,6 +78,28 @@ class ClassifyQueryTests(unittest.TestCase):
         self.assertEqual(stop, "Oberderdingen Amthof")
         self.assertIsNone(coords)
 
+    def test_geocode_invoked_for_address(self):
+        # Queries that look like real addresses should trigger geocoding
+        from unittest.mock import patch
+
+        query = "Musterstrasse 5, Teststadt"
+        with patch("cli.geocode_address", return_value=(1.0, 2.0)) as geo:
+            stop, coords = self.classify_query(query, self.stop_names)
+            geo.assert_called_once_with(query)
+            self.assertIsNone(stop)
+            self.assertEqual(coords, (1.0, 2.0))
+
+    def test_address_skips_stop_matching(self):
+        # Ensure address strings do not go through fuzzy stop matching
+        from unittest.mock import patch
+
+        query = "Hauptstrasse 12"
+        with patch("cli.resolve_stop", side_effect=AssertionError("called")):
+            with patch("cli.geocode_address", return_value=(3.0, 4.0)):
+                stop, coords = self.classify_query(query, self.stop_names)
+                self.assertIsNone(stop)
+                self.assertEqual(coords, (3.0, 4.0))
+
 
 if __name__ == "__main__":
     unittest.main()

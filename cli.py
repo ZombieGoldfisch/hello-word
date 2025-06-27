@@ -28,6 +28,14 @@ def classify_query(query: str, stop_names: List[str]) -> Tuple[Optional[str], Op
     if query.lower() in stop_lookup:
         return stop_lookup[query.lower()], None
 
+    # Treat strings that look like full addresses directly as addresses.
+    # Addresses often contain digits or commas which are unlikely in stop
+    # names. Skipping the fuzzy matching avoids false positives where an
+    # address is incorrectly resolved to a stop with a similar name.
+    if any(ch.isdigit() for ch in query) or "," in query:
+        coords = geocode_address(query)
+        return None, coords
+
     # Fuzzy match with a higher cutoff for reliability
     stop = resolve_stop(query, stop_names, cutoff=0.85)
     if stop:

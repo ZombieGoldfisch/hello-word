@@ -22,6 +22,16 @@ können gemeinsam installiert werden mit
 pip install -r requirements.txt
 ```
 
+Alternativ kann das Skript `setup.sh` verwendet werden, das die Installation
+automatisch durchführt:
+
+```bash
+./setup.sh
+```
+
+Mit dem Zusatz `--with-optional` werden auch die optionalen Pakete
+installiert.
+
 Für die optionale Visualisierung werden die Pakete `osmnx` und `folium` benötigt:
 
 ```bash

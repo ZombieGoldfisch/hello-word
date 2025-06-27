@@ -41,10 +41,14 @@ class RoutingGUI:
         )
         self.time_mode.current(0)
         self.time_mode.grid(row=3, column=1, sticky="w", padx=5, pady=2)
+        self.time_mode.bind("<<ComboboxSelected>>", self.on_time_mode_changed)
 
-        tk.Label(self.root, text="Zeit (HH:MM)").grid(row=4, column=0, sticky="e")
+        self.time_label = tk.Label(self.root, text="Zeit (HH:MM)")
+        self.time_label.grid(row=4, column=0, sticky="e")
         self.time_entry = tk.Entry(self.root, width=10)
         self.time_entry.grid(row=4, column=1, sticky="w", padx=5, pady=2)
+        self.time_label.grid_remove()
+        self.time_entry.grid_remove()
 
         self.route_button = tk.Button(self.root, text="Route berechnen", command=self.compute_route)
         self.route_button.grid(row=5, column=0, columnspan=2, pady=5)
@@ -55,6 +59,15 @@ class RoutingGUI:
     def log(self, text: str) -> None:
         self.output.insert(tk.END, text + "\n")
         self.output.see(tk.END)
+
+    def on_time_mode_changed(self, event=None) -> None:
+        mode = self.time_mode.get()
+        if mode == "now":
+            self.time_label.grid_remove()
+            self.time_entry.grid_remove()
+        else:
+            self.time_label.grid()
+            self.time_entry.grid()
 
     def compute_route(self) -> None:
         self.output.delete("1.0", tk.END)

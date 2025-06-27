@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Tuple, Iterable
 
 import networkx as nx
 import osmnx as ox
@@ -13,13 +13,14 @@ def find_osm_route(
     start_coords: Tuple[float, float],
     goal_coords: Tuple[float, float],
     network_type: str = "drive",
-) -> List[Tuple[float, float]]:
-    """Return shortest route between two coordinates using OpenStreetMap.
+) -> Tuple[List[Tuple[float, float]], float]:
+    """Return fastest route and travel time between two coordinates.
 
     ``start_coords`` and ``goal_coords`` are ``(lat, lon)`` tuples.  The
-    function loads an OSM network covering both points and computes the
-    shortest path by edge length.  The resulting route is returned as a list
-    of ``(lat, lon)`` coordinates.
+    function loads an OSM network covering both points, enriches it with
+    speed and travel time estimates and computes the fastest path between the
+    two points.  The resulting route is returned as a list of ``(lat, lon)``
+    coordinates together with the estimated travel time in minutes.
     """
 
     north = max(start_coords[0], goal_coords[0]) + 0.005
@@ -34,13 +35,22 @@ def find_osm_route(
         center_lon = (start_coords[1] + goal_coords[1]) / 2
         G = ox.graph_from_point((center_lat, center_lon), dist=1000, network_type=network_type)
 
+    # add speed and travel time information for each edge
+    G = ox.add_edge_speeds(G)
+    G = ox.add_edge_travel_times(G)
+
     try:
         orig_node = ox.nearest_nodes(G, start_coords[1], start_coords[0])
         dest_node = ox.nearest_nodes(G, goal_coords[1], goal_coords[0])
-        path = nx.shortest_path(G, orig_node, dest_node, weight="length")
+        path = nx.shortest_path(G, orig_node, dest_node, weight="travel_time")
     except (nx.NetworkXNoPath, nx.NodeNotFound) as exc:
         raise RouteNotFoundError("No route found between the given coordinates") from exc
     except Exception as exc:
         raise RouteNotFoundError(f"Routing failed: {exc}") from exc
 
-    return [(G.nodes[n]["y"], G.nodes[n]["x"]) for n in path]
+    coords = [(G.nodes[n]["y"], G.nodes[n]["x"]) for n in path]
+    travel_seconds: Iterable[float] = ox.utils_graph.get_route_edge_attributes(
+        G, path, "travel_time"
+    )
+    travel_time_min = sum(travel_seconds) / 60.0
+    return coords, travel_time_min

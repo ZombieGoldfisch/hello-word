@@ -196,7 +196,9 @@ def run_cli(network_type: str = "drive") -> None:
         nt_map = {"auto": "drive", "rad": "bike", "fuss": "walk"}
         nt = nt_map[mode]
         try:
-            coords_path = find_osm_route(start_coords, goal_coords, network_type=nt)
+            coords_path, travel_time = find_osm_route(
+                start_coords, goal_coords, network_type=nt
+            )
         except RouteNotFoundError as exc:
             print(exc)
             continue
@@ -204,6 +206,12 @@ def run_cli(network_type: str = "drive") -> None:
         print("Route coordinates:")
         for lat, lon in coords_path:
             print(f"  {lat:.5f}, {lon:.5f}")
+
+        now = datetime.now()
+        start_minutes = now.hour * 60 + now.minute + now.second / 60.0
+        arrival = start_minutes + travel_time
+        print(f"Estimated arrival: {minutes_to_hhmm(arrival)}")
+
         filename = save_coords_map(coords_path, network_type=nt)
         if filename:
             print(f"Map saved to {filename}")

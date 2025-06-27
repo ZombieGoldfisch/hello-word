@@ -86,16 +86,29 @@ class RoutingGUI:
             self.log("Bitte Start und Ziel eingeben.")
             return
 
-        try:
-            start_stop, start_coords = classify_query(start_q, self.stop_names)
-        except Exception as exc:
-            self.log(f"Fehler bei Start: {exc}")
-            return
-        try:
-            goal_stop, goal_coords = classify_query(goal_q, self.stop_names)
-        except Exception as exc:
-            self.log(f"Fehler bei Ziel: {exc}")
-            return
+        if mode == "bahn":
+            try:
+                start_stop, start_coords = classify_query(start_q, self.stop_names)
+            except Exception as exc:
+                self.log(f"Fehler bei Start: {exc}")
+                return
+            try:
+                goal_stop, goal_coords = classify_query(goal_q, self.stop_names)
+            except Exception as exc:
+                self.log(f"Fehler bei Ziel: {exc}")
+                return
+        else:
+            try:
+                start_coords = geocode_address(start_q)
+            except Exception as exc:
+                self.log(f"Fehler bei Start: {exc}")
+                return
+            try:
+                goal_coords = geocode_address(goal_q)
+            except Exception as exc:
+                self.log(f"Fehler bei Ziel: {exc}")
+                return
+            start_stop = goal_stop = None
 
         if start_stop is not None:
             node = self.graph.nodes.get(start_stop)

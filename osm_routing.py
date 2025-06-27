@@ -1,4 +1,4 @@
-from typing import List, Tuple, Iterable
+from typing import List, Tuple, Iterable, Any
 
 import networkx as nx
 import osmnx as ox
@@ -7,6 +7,20 @@ import osmnx as ox
 class RouteNotFoundError(Exception):
     """Raised when no OSM route between two points can be determined."""
 
+
+
+def _route_travel_time(G: Any, path: List[Any]) -> float:
+    """Return total travel time in seconds along ``path``."""
+    total = 0.0
+    for u, v in zip(path[:-1], path[1:]):
+        edges = G.get_edge_data(u, v, default={})
+        if isinstance(edges, dict):
+            times = [data.get("travel_time", 0.0) for data in edges.values()]
+            if times:
+                total += min(times)
+        else:
+            total += edges.get("travel_time", 0.0)
+    return total
 
 
 def find_osm_route(
@@ -49,8 +63,8 @@ def find_osm_route(
         raise RouteNotFoundError(f"Routing failed: {exc}") from exc
 
     coords = [(G.nodes[n]["y"], G.nodes[n]["x"]) for n in path]
-    travel_seconds: Iterable[float] = ox.utils_graph.get_route_edge_attributes(
-        G, path, "travel_time"
-    )
-    travel_time_min = sum(travel_seconds) / 60.0
+    # ``ox.utils_graph.get_route_edge_attributes`` was removed in older OSMnx
+    # versions, so compute travel time manually to stay compatible.
+    travel_seconds = _route_travel_time(G, path)
+    travel_time_min = travel_seconds / 60.0
     return coords, travel_time_min

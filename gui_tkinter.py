@@ -50,11 +50,18 @@ class RoutingGUI:
         self.time_label.grid_remove()
         self.time_entry.grid_remove()
 
+        tk.Label(self.root, text="Sortierung").grid(row=5, column=0, sticky="e")
+        self.sort_combo = ttk.Combobox(
+            self.root, values=["time", "transfers"], state="readonly"
+        )
+        self.sort_combo.current(0)
+        self.sort_combo.grid(row=5, column=1, sticky="w", padx=5, pady=2)
+
         self.route_button = tk.Button(self.root, text="Route berechnen", command=self.compute_route)
-        self.route_button.grid(row=5, column=0, columnspan=2, pady=5)
+        self.route_button.grid(row=6, column=0, columnspan=2, pady=5)
 
         self.output = tk.Text(self.root, width=60, height=15)
-        self.output.grid(row=6, column=0, columnspan=2, padx=5, pady=5)
+        self.output.grid(row=7, column=0, columnspan=2, padx=5, pady=5)
 
     def log(self, text: str) -> None:
         self.output.insert(tk.END, text + "\n")
@@ -119,7 +126,15 @@ class RoutingGUI:
                     self.log(f"Ung\u00fcltige Zeitangabe: {exc}")
                     return
                 reverse = choice == "anreise"
-            path = find_route(self.graph, start_stop, goal_stop, start_minutes, reverse=reverse)
+            sort_by = self.sort_combo.get()
+            path = find_route(
+                self.graph,
+                start_stop,
+                goal_stop,
+                start_minutes,
+                reverse=reverse,
+                sort_by=sort_by,
+            )
             if not path:
                 self.log("Keine Route gefunden.")
                 return

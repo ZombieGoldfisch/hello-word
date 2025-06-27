@@ -163,43 +163,56 @@ def run_cli(network_type: str = "drive") -> None:
                 print("No path found.")
             continue
 
-        start_query = input("Von wo? (Haltestelle oder Adresse, 'reset'/'exit'): ").strip()
+        start_query = input("Von wo? (Adresse oder Haltestelle, 'reset'/'exit'): ").strip()
         if start_query.lower() == "exit":
             break
         if start_query.lower() == "reset":
             continue
 
-        goal_query = input("Nach wo? (Haltestelle oder Adresse, 'reset'/'exit'): ").strip()
+        goal_query = input("Nach wo? (Adresse oder Haltestelle, 'reset'/'exit'): ").strip()
         if goal_query.lower() == "exit":
             break
         if goal_query.lower() == "reset":
             continue
 
-        try:
-            start, start_coords = classify_query(start_query, stop_names)
-        except Exception as exc:
-            print(f"Failed to resolve '{start_query}': {exc}")
-            continue
-
-        try:
-            goal, goal_coords = classify_query(goal_query, stop_names)
-        except Exception as exc:
-            print(f"Failed to resolve '{goal_query}': {exc}")
-            continue
-
-        if start is not None:
-            node = graph.nodes.get(start)
-            if not node or node.lat is None or node.lon is None:
-                print(f"No coordinates for stop '{start}'")
+        if mode in {"auto", "rad", "fuss"}:
+            try:
+                start_coords = geocode_address(start_query)
+            except Exception as exc:
+                print(f"Failed to geocode '{start_query}': {exc}")
                 continue
-            start_coords = (node.lat, node.lon)
 
-        if goal is not None:
-            node = graph.nodes.get(goal)
-            if not node or node.lat is None or node.lon is None:
-                print(f"No coordinates for stop '{goal}'")
+            try:
+                goal_coords = geocode_address(goal_query)
+            except Exception as exc:
+                print(f"Failed to geocode '{goal_query}': {exc}")
                 continue
-            goal_coords = (node.lat, node.lon)
+        else:
+            try:
+                start, start_coords = classify_query(start_query, stop_names)
+            except Exception as exc:
+                print(f"Failed to resolve '{start_query}': {exc}")
+                continue
+
+            try:
+                goal, goal_coords = classify_query(goal_query, stop_names)
+            except Exception as exc:
+                print(f"Failed to resolve '{goal_query}': {exc}")
+                continue
+
+            if start is not None:
+                node = graph.nodes.get(start)
+                if not node or node.lat is None or node.lon is None:
+                    print(f"No coordinates for stop '{start}'")
+                    continue
+                start_coords = (node.lat, node.lon)
+
+            if goal is not None:
+                node = graph.nodes.get(goal)
+                if not node or node.lat is None or node.lon is None:
+                    print(f"No coordinates for stop '{goal}'")
+                    continue
+                goal_coords = (node.lat, node.lon)
 
         nt_map = {"auto": "drive", "rad": "bike", "fuss": "walk"}
         nt = nt_map[mode]

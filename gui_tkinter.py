@@ -4,6 +4,7 @@ from datetime import datetime
 import webbrowser
 
 from cli import classify_query
+from geocoding import geocode_address
 from routing import (
     load_default_graph,
     find_route,

@@ -82,6 +82,7 @@ python main.py gui
 Dort lassen sich Start und Ziel eingeben, das
 
 Verkehrsmittel wählen sowie optional eine Abfahrts- oder Ankunftszeit
-angeben. Nach dem Klick auf "Route berechnen" wird der berechnete Weg
+angeben. Zudem kann die Route nach Reisezeit oder der Anzahl der
+Umstiege sortiert werden. Nach dem Klick auf "Route berechnen" wird der berechnete Weg
 im Textfeld ausgegeben und – sofern ``osmnx`` und ``folium`` verfügbar
  sind – eine HTML-Karte automatisch im Browser geöffnet.

@@ -1,8 +1,6 @@
 from typing import List, Tuple, Optional
 
 import folium
-import osmnx as ox
-import networkx as nx
 
 from graph import Graph
 from routing import minutes_to_hhmm
@@ -13,13 +11,13 @@ def save_route_map(
     filename: str = "route_map.html",
     network_type: str = "drive",
 ) -> Optional[str]:
-    """Save the list of stops as an interactive HTML map using OSM data.
+    """Save the list of stops as an interactive HTML map.
 
-    Coordinates are looked up from ``graph``.  Routes between consecutive
-    stops are calculated on an OpenStreetMap network.  ``network_type`` can
-    be used to choose the network, e.g. ``"drive"`` or ``"walk"``.  The
-    resulting HTML file is returned or ``None`` if any stop lacks coordinate
-    data.
+    Coordinates are looked up from ``graph``.  The resulting list of
+    coordinates is plotted directly without erneute Berechnung entlang des
+    OSM-Netzes. ``network_type`` remains for backward compatibility but is not
+    used any more. The function returns the generated HTML file or ``None`` if
+    Koordinaten fehlen.
     """
 
     coords = []
@@ -35,26 +33,7 @@ def save_route_map(
         return None
 
     m = folium.Map(location=coords[0], zoom_start=13)
-
-    # Build segments along the OSM network for each pair of stops
-    for i in range(len(coords) - 1):
-        origin = coords[i]
-        dest = coords[i + 1]
-        north = max(origin[0], dest[0]) + 0.005
-        south = min(origin[0], dest[0]) - 0.005
-        east = max(origin[1], dest[1]) + 0.005
-        west = min(origin[1], dest[1]) - 0.005
-        try:
-            G = ox.graph_from_bbox(north, south, east, west, network_type=network_type)
-            orig_node = ox.nearest_nodes(G, origin[1], origin[0])
-            dest_node = ox.nearest_nodes(G, dest[1], dest[0])
-            route = nx.shortest_path(G, orig_node, dest_node, weight="length")
-            route_gdf = ox.route_to_gdf(G, route)
-            route_coords = [(lat, lon) for lon, lat in route_gdf.geometry.iloc[0].coords]
-            folium.PolyLine(route_coords, color="blue").add_to(m)
-        except Exception:
-            # Fallback to straight line if routing fails
-            folium.PolyLine([origin, dest], color="blue", dash_array="5").add_to(m)
+    folium.PolyLine(coords, color="blue").add_to(m)
 
     for (step, (lat, lon)) in zip(path, coords):
         stop, line, arr = step
@@ -72,33 +51,16 @@ def save_coords_map(
 ) -> Optional[str]:
     """Save a coordinate path as an interactive HTML map.
 
-    The list of coordinate pairs ``coords`` is connected along an
-    OpenStreetMap network if possible. ``network_type`` chooses the OSM
-    network like ``"drive"`` or ``"walk"``.
+    The provided coordinates are drawn directly as a polyline. The parameter
+    ``network_type`` is kept for API compatibility but no longer influences the
+    output.
     """
 
     if not coords:
         return None
 
     m = folium.Map(location=coords[0], zoom_start=13)
-
-    for i in range(len(coords) - 1):
-        origin = coords[i]
-        dest = coords[i + 1]
-        north = max(origin[0], dest[0]) + 0.005
-        south = min(origin[0], dest[0]) - 0.005
-        east = max(origin[1], dest[1]) + 0.005
-        west = min(origin[1], dest[1]) - 0.005
-        try:
-            G = ox.graph_from_bbox(north, south, east, west, network_type=network_type)
-            orig_node = ox.nearest_nodes(G, origin[1], origin[0])
-            dest_node = ox.nearest_nodes(G, dest[1], dest[0])
-            route = nx.shortest_path(G, orig_node, dest_node, weight="length")
-            route_gdf = ox.route_to_gdf(G, route)
-            route_coords = [(lat, lon) for lon, lat in route_gdf.geometry.iloc[0].coords]
-            folium.PolyLine(route_coords, color="blue").add_to(m)
-        except Exception:
-            folium.PolyLine([origin, dest], color="blue", dash_array="5").add_to(m)
+    folium.PolyLine(coords, color="blue").add_to(m)
 
     for lat, lon in coords:
         folium.Marker([lat, lon]).add_to(m)

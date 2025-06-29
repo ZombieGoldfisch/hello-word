@@ -52,6 +52,12 @@ pip install osmnx folium geopy
 In `save_route_map` kann über den Parameter `network_type` das genutzte
 OSM-Netz gewählt werden (z.B. `"drive"`, `"walk"`, `"bike"`, `"rail"`).
 
+Die Funktion `find_osm_route` besitzt zudem die Parameter `box_margin` und
+`fallback_dist`, mit denen sich die Größe des geladenen OSM-Ausschnitts
+steuern lässt. `box_margin` legt den Puffer in Grad um Start- und Zielpunkt
+fest (Standard: `0.02`), `fallback_dist` bestimmt den Radius in Metern, der
+verwendet wird, wenn das Laden der Bounding Box fehlschlägt.
+
 ## Beispiele
 
 ### Adressrouting

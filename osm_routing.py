@@ -46,7 +46,13 @@ def find_osm_route(
     west = min(start_coords[1], goal_coords[1]) - box_margin
 
     try:
-        G = ox.graph_from_bbox(north, south, east, west, network_type=network_type)
+        G = ox.graph_from_bbox(
+            north=north,
+            south=south,
+            east=east,
+            west=west,
+            network_type=network_type,
+        )
     except Exception as exc:
         center_lat = (start_coords[0] + goal_coords[0]) / 2
         center_lon = (start_coords[1] + goal_coords[1]) / 2

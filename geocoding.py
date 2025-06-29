@@ -9,11 +9,13 @@ except Exception:  # pragma: no cover - geopy might not be installed
 
 import osmnx as ox
 
-_VIEWBOX_KARLSRUHE = (8.2, 48.8, 8.9, 49.3)  # west, south, east, north
+# The geopy ``viewbox`` argument expects the order ``(south, west, north, east)``
+_VIEWBOX_KARLSRUHE = (48.8, 8.2, 49.3, 8.9)  # Karlsruhe district
 
 _geolocator = None
 if Nominatim is not None:
-    _geolocator = Nominatim(user_agent="routing-demo")
+    # Increase the default timeout (1s) to make geocoding more reliable
+    _geolocator = Nominatim(user_agent="routing-demo", timeout=10)
 
 
 def geocode_address(query: str) -> Tuple[float, float]:

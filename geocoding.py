@@ -13,7 +13,8 @@ _VIEWBOX_KARLSRUHE = (8.2, 48.8, 8.9, 49.3)  # west, south, east, north
 
 _geolocator = None
 if Nominatim is not None:
-    _geolocator = Nominatim(user_agent="routing-demo")
+    # Increase the default timeout (1s) to make geocoding more reliable
+    _geolocator = Nominatim(user_agent="routing-demo", timeout=10)
 
 
 def geocode_address(query: str) -> Tuple[float, float]:

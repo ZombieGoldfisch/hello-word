@@ -27,6 +27,9 @@ def find_osm_route(
     start_coords: Tuple[float, float],
     goal_coords: Tuple[float, float],
     network_type: str = "drive",
+    *,
+    box_margin: float = 0.02,
+    fallback_dist: int = 3000,
 ) -> Tuple[List[Tuple[float, float]], float]:
     """Return fastest route and travel time between two coordinates.
 
@@ -37,17 +40,23 @@ def find_osm_route(
     coordinates together with the estimated travel time in minutes.
     """
 
-    north = max(start_coords[0], goal_coords[0]) + 0.005
-    south = min(start_coords[0], goal_coords[0]) - 0.005
-    east = max(start_coords[1], goal_coords[1]) + 0.005
-    west = min(start_coords[1], goal_coords[1]) - 0.005
+    north = max(start_coords[0], goal_coords[0]) + box_margin
+    south = min(start_coords[0], goal_coords[0]) - box_margin
+    east = max(start_coords[1], goal_coords[1]) + box_margin
+    west = min(start_coords[1], goal_coords[1]) - box_margin
 
     try:
         G = ox.graph_from_bbox(north, south, east, west, network_type=network_type)
-    except Exception:
+    except Exception as exc:
         center_lat = (start_coords[0] + goal_coords[0]) / 2
         center_lon = (start_coords[1] + goal_coords[1]) / 2
-        G = ox.graph_from_point((center_lat, center_lon), dist=1000, network_type=network_type)
+        print(
+            f"Failed to load bbox network ({exc}); "
+            f"falling back to radius {fallback_dist} m"
+        )
+        G = ox.graph_from_point(
+            (center_lat, center_lon), dist=fallback_dist, network_type=network_type
+        )
 
     # add speed and travel time information for each edge
     G = ox.add_edge_speeds(G)
